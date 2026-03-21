@@ -1,6 +1,5 @@
 package com.inspiremymini.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -24,7 +23,7 @@ import lombok.ToString;
 @Entity
 @Table(name = "app_user")
 @ToString(exclude = "password")
-public class User {  // konwencja UserEntity
+public class UserEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

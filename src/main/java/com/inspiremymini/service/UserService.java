@@ -1,48 +1,75 @@
 package com.inspiremymini.service;
 
-import com.inspiremymini.model.User;
+import com.inspiremymini.dto.UserRequest;
+import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.exception.UserNotFoundException;
+import com.inspiremymini.mapper.UserMapper;
+import com.inspiremymini.model.UserEntity;
 import com.inspiremymini.repository.UserRepository;
-import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserService {
 
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(userMapper::mapFromUserEntityToUserResponse)
+                .toList();
     }
 
-    public User getUserById(Long id) {
-        return userRepository.findById(id).orElseThrow(()
-                -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    public UserResponse getUserById(Long id) {
+        UserEntity userEntity = userRepository.findById(id).orElseThrow(()
+                -> new UserNotFoundException(id));
+        return userMapper.mapFromUserEntityToUserResponse(userEntity);
     }
 
-    public User createUser(User user) {
-        return userRepository.save(user);
+    @Transactional
+    public UserResponse createUser(UserRequest userRequest) {
+        UserEntity userEntity = userMapper.mapFromUserRequestToUserEntity(userRequest);
+        userEntity.setPassword(bCryptPasswordEncoder.encode(userEntity.getPassword()));
+        UserEntity savedUserEntity = userRepository.save(userEntity);
+        return userMapper.mapFromUserEntityToUserResponse(savedUserEntity);
     }
 
-    public User updateUser(Long id, Map<String, Object> updates) {
-        User user = getUserById(id);
-        updates.forEach((key, value) -> {
-            switch (key) {
-                case "username" -> user.setUsername((String) value);
-                case "email" -> user.setEmail((String) value);
-                case "password" -> user.setPassword((String) value);
-            }
-        });
-        return userRepository.save(user);
+    @Transactional
+    public UserResponse updateUser(Long id, UserRequest userRequest) {
+        UserEntity userEntity = userRepository.findById(id).orElseThrow(()
+                -> new UserNotFoundException(id));
+        userMapper.updateUserEntityFromUserRequest(userEntity, userRequest);
+        if (userRequest.getPassword() != null) {
+            userEntity.setPassword(bCryptPasswordEncoder.encode(userEntity.getPassword()));
+        }
+        return userMapper.mapFromUserEntityToUserResponse(userRepository.save(userEntity));
     }
 
+    @Transactional
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
 
 }
+
+// TODO sprawdzić w update czy nie ma już update albo czy save nie wystarczy
+//      -> nie ma, można tak jak zrobiłem albo jeszcze org.mapstruct @Mapper
+// TODO tranzakcje wprowadzic
+//      -> zrobione
+// TODO dodać bcrypt, bean bcreaptencoder
+//      -> zrobione
+// TODO rzucamy customowy exception np UserNotFoundException, Unchecked ... extends Runtime
+//      -> zrobione
+// TODO przygotować swoje exception
+//      -> zrobione
+
+
