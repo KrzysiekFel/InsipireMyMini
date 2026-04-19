@@ -22,7 +22,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-// nastepne testy z contextem
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
 
@@ -40,6 +39,7 @@ public class UserServiceTest {
 
     @Test
     public void getAllUsersShouldReturnAllMappedUsers() {
+        // given
         UserEntity userEntity1 = new UserEntity(
                 1L, "username1", "password1", "user1@example.com");
         UserEntity userEntity2 = new UserEntity(
@@ -52,10 +52,10 @@ public class UserServiceTest {
         when(userMapper.mapFromUserEntityToUserResponse(userEntity1)).thenReturn(userResponse1);
         when(userMapper.mapFromUserEntityToUserResponse(userEntity2)).thenReturn(userResponse2);
 
-
+        // when
         List<UserResponse> result = userService.getAllUsers();
 
-
+        // then
         assertNotNull(result);
         assertEquals(List.of(userResponse1, userResponse2), result);
         verify(userRepository, times(1)).findAll();
@@ -83,18 +83,22 @@ public class UserServiceTest {
 
     @Test
     public void getUserByIdShouldThrowExceptionWhenUserNotFound() {
+        // given
         Long notExistingUserId = 999L;
         when(userRepository.findById(notExistingUserId)).thenReturn(Optional.empty());
 
+        // when
         UserNotFoundException result = assertThrows(
                 UserNotFoundException.class, () -> userService.getUserById(notExistingUserId));
 
+        // then
         assertEquals("User with id: 999 not found.", result.getMessage());
         assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus());
     }
 
     @Test
     public void createUserShouldCreateUserWhenNotExists() {
+        // given
         UserRequest userRequest = new UserRequest(
                 "username", "password", "user@example.com");
         UserEntity userEntity = new UserEntity(
@@ -103,7 +107,6 @@ public class UserServiceTest {
                 1L, "username", "encodedPassword", "user@example.com");
         UserResponse userResponse = new UserResponse(
                 1L, "username", "user@example.com");
-
         when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(false);
         when(userRepository.existsByUsername(userRequest.getUsername())).thenReturn(false);
         when(userMapper.mapFromUserRequestToUserEntity(userRequest)).thenReturn(userEntity);
@@ -111,44 +114,51 @@ public class UserServiceTest {
         when(userRepository.save(userEntity)).thenReturn(savedEntity);
         when(userMapper.mapFromUserEntityToUserResponse(savedEntity)).thenReturn(userResponse);
 
+        // when
         UserResponse result = userService.createUser(userRequest);
 
+        // then
         assertEquals(userResponse, result);
     }
 
     @Test
-    public void createUserShouldShouldThrowExceptionWhenAssociatedEmailAlreadyExists() {
+    public void createUserShouldThrowExceptionWhenAssociatedEmailAlreadyExists() {
+        // given
         UserRequest userRequest = new UserRequest(
                 "username", "password", "user@example.com");
         when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(true);
 
+        // when
         EmailAlreadyExistsException result = assertThrows(
                 EmailAlreadyExistsException.class, () -> userService.createUser(userRequest));
 
+        // then
         assertEquals("User with email: user@example.com already exist.", result.getMessage());
         assertEquals(HttpStatus.CONFLICT, result.getHttpStatus());
     }
 
     @Test
-    public void createUserShouldShouldReturnExceptionWhenExistByUsername() {
+    public void createUserShouldThrowExceptionWhenExistByUsername() {
+        // given
         UserRequest userRequest = new UserRequest(
                 "username", "password", "user@example.com");
-
         when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(false);
         when(userRepository.existsByUsername(userRequest.getUsername())).thenReturn(true);
 
+        // when
         UsernameAlreadtExistsException result = assertThrows(
                 UsernameAlreadtExistsException.class, () -> userService.createUser(userRequest));
 
+        // then
         assertEquals("Username: username already exist.", result.getMessage());
         assertEquals(HttpStatus.CONFLICT, result.getHttpStatus());
-
         verify(userRepository).existsByEmail(userRequest.getEmail());
         verify(userRepository).existsByUsername(userRequest.getUsername());
     }
 
     @Test
     public void updateUserShouldUpdateEntityWhenUserExist() {
+        //given
         Long existingId = 1L;
         UserRequest userRequest = new UserRequest(
                 "usernameNew", "passwordNew", "userNew@example.com");
@@ -158,7 +168,6 @@ public class UserServiceTest {
                 1L, "usernameNew", "encodedPassword", "userNew@example.com");
         UserResponse userResponse = new UserResponse(
                 1L, "usernameNew", "userNew@example.com");
-
         when(userRepository.findById(existingId)).thenReturn(Optional.of(existingUserEntity));
         doAnswer(invocation -> {
             UserEntity entity = invocation.getArgument(0);
@@ -177,63 +186,66 @@ public class UserServiceTest {
         when(userMapper.mapFromUserEntityToUserResponse(updatedUserEntity))
                 .thenReturn(userResponse);
 
+        // when
         UserResponse result = userService.updateUser(existingId, userRequest);
 
+        // then
         assertEquals(userResponse, result);
         assertAll(
                 () -> assertEquals("usernameNew", existingUserEntity.getUsername()),
                 () -> assertEquals("encodedPassword", existingUserEntity.getPassword())
         );
-
         verify(userRepository).findById(existingId);
         verify(userRepository).save(existingUserEntity);
-
-        // ArgumentCaptor
     }
 
     @Test
-    public void updateUserShouldUReturnExceptionWhenUserDoesNotExist() {
+    public void updateUserShouldUThrowExceptionWhenUserDoesNotExist() {
+        // given
         Long notExistingUserId = 999L;
         UserRequest userRequest = new UserRequest(
                 "usernameNew", "passwordNew", "userNew@example.com");
-
         when(userRepository.findById(notExistingUserId)).thenReturn(Optional.empty());
 
+        // when
         UserNotFoundException result = assertThrows(UserNotFoundException.class,
                 () -> userService.updateUser(notExistingUserId, userRequest));
 
+        // then
         assertEquals("User with id: 999 not found.", result.getMessage());
         assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus());
-
         verify(userRepository).findById(notExistingUserId);
     }
 
     @Test
     void deleteUserWhenIdExists() {
+        // given
         Long existingId = 1L;
         UserEntity userEntity = new UserEntity(
                 1L, "username", "password", "user@example.com");
-
         when(userRepository.findById(existingId))
                 .thenReturn(Optional.of(userEntity));
 
+        // when
         userService.deleteUser(existingId);
 
+        // then
         verify(userRepository).findById(existingId);
         verify(userRepository).delete(userEntity);
     }
 
     @Test
     public void deleteUserReturnExceptionWhenIdNotExists() {
+        // given
         Long notExistingUserId = 999L;
-
         when(userRepository.findById(notExistingUserId)).thenReturn(Optional.empty());
 
+        // when
         UserNotFoundException result = assertThrows(UserNotFoundException.class,
                 () -> userService.deleteUser(notExistingUserId));
 
+        // then
         assertEquals("User with id: 999 not found.", result.getMessage());
-
         verify(userRepository).findById(notExistingUserId);
         verify(userRepository, never()).delete(any());
     }
