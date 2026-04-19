@@ -1,9 +1,11 @@
-package com.inspiremymini.exception;
+package com.inspiremymini.exception.handler;
+
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 
 public record ErrorResponse(
-        int httpStatus,
+        HttpStatus httpStatus,
         String message,
         LocalDateTime timestamp
 ) {}

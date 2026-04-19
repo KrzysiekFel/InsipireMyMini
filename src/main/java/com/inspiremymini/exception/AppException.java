@@ -2,10 +2,10 @@ package com.inspiremymini.exception;
 
 import org.springframework.http.HttpStatus;
 
-public abstract class BusinessException extends RuntimeException{
+public abstract class AppException extends RuntimeException{
     private final HttpStatus httpStatus;
 
-    protected BusinessException(String message, HttpStatus httpStatus) {
+    protected AppException(String message, HttpStatus httpStatus) {
         super(message);
         this.httpStatus = httpStatus;
     }

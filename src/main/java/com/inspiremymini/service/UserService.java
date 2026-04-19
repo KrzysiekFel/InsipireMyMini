@@ -2,22 +2,22 @@ package com.inspiremymini.service;
 
 import com.inspiremymini.dto.UserRequest;
 import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.exception.EmailAlreadyExistsException;
 import com.inspiremymini.exception.UserNotFoundException;
+import com.inspiremymini.exception.UsernameAlreadtExistsException;
 import com.inspiremymini.mapper.UserMapper;
 import com.inspiremymini.model.UserEntity;
 import com.inspiremymini.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class UserService {
-
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -37,6 +37,12 @@ public class UserService {
 
     @Transactional
     public UserResponse createUser(UserRequest userRequest) {
+        if (userRepository.existsByEmail(userRequest.getEmail())) {
+            throw new EmailAlreadyExistsException(userRequest.getEmail());
+        }
+        if (userRepository.existsByUsername(userRequest.getUsername())) {
+            throw new UsernameAlreadtExistsException(userRequest.getUsername());
+        }
         UserEntity userEntity = userMapper.mapFromUserRequestToUserEntity(userRequest);
         userEntity.setPassword(bCryptPasswordEncoder.encode(userEntity.getPassword()));
         UserEntity savedUserEntity = userRepository.save(userEntity);
@@ -56,20 +62,9 @@ public class UserService {
 
     @Transactional
     public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+        UserEntity userEntity = userRepository.findById(id).orElseThrow(()
+                -> new UserNotFoundException(id));
+        userRepository.delete(userEntity);
     }
 
 }
-
-// TODO sprawdzić w update czy nie ma już update albo czy save nie wystarczy
-//      -> nie ma, można tak jak zrobiłem albo jeszcze org.mapstruct @Mapper
-// TODO tranzakcje wprowadzic
-//      -> zrobione
-// TODO dodać bcrypt, bean bcreaptencoder
-//      -> zrobione
-// TODO rzucamy customowy exception np UserNotFoundException, Unchecked ... extends Runtime
-//      -> zrobione
-// TODO przygotować swoje exception
-//      -> zrobione
-
-
