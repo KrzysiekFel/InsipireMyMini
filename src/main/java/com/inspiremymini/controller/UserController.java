@@ -2,6 +2,7 @@ package com.inspiremymini.controller;
 
 import com.inspiremymini.dto.UserRequest;
 import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.exception.UnauthenticatedException;
 import com.inspiremymini.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers(@RequestHeader("X-Api-Key") String apiKey) {
         if (!API_KEY.equals(apiKey)) {
-            throw new RuntimeException();
+            throw new UnauthenticatedException("Invalid API Key");
         }
         return ResponseEntity.status(HttpStatus.OK).body(userService.getAllUsers());
     }

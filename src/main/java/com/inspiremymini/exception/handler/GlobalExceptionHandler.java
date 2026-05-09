@@ -11,10 +11,8 @@ import java.time.LocalDateTime;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // TODO: We need to add other exceptions
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(AppException appException) {
-//        log.error("User creatioon failed, user alkready exists...");
         return ResponseEntity.status(appException.getHttpStatus())
                 .body(new ErrorResponse(
                         HttpStatus.valueOf(appException.getHttpStatus().value()),
