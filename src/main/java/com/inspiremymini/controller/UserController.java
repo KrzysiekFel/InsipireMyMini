@@ -1,7 +1,7 @@
 package com.inspiremymini.controller;
 
-import com.inspiremymini.dto.UserRequest;
-import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.api.model.UserRequest;
+import com.inspiremymini.api.model.UserResponse;
 import com.inspiremymini.exception.UnauthenticatedException;
 import com.inspiremymini.service.UserService;
 import lombok.AllArgsConstructor;

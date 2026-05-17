@@ -1,52 +1,74 @@
 package com.inspiremymini.controller;
 
-// TODO: DONE:
-// propertisy testowe ze zdefiniowanym portem
-// prepared statement w jdbcTemplate chroni przed sql injection (używamy np jdbcTemplate.queryForObject)
-// pozbylem  sie magic number
-// zmienilem exception jak nie ma API Key: UnauthenticatedException i poprawilem test
-
 // TODO: DO ZROBIENIA:
+// porównywac cały payload <- DONE z gwiazdką
 // poprawić ten rest template żeby działał update
-// porównywac cały payload
 // sprobowac api first
+
 
 import com.inspiremymini.config.TestSecurityConfig;
 import com.inspiremymini.config.TestcontainersConfig;
-import com.inspiremymini.dto.UserRequest;
-import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.api.model.UserRequest;
+import com.inspiremymini.api.model.UserResponse;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
 //import org.springframework.boot.test.web.client.TestRestTemplate;  TODO: sprobowac mock MVC
 
-@Import({TestcontainersConfig.class, TestSecurityConfig.class})
+@Import(TestcontainersConfig.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
-                properties = "spring.config.name=application-test")
-@Transactional
+                properties = {"spring.config.name=application-test", "spring.profiles.active=test"})
+//@WebMvcTest(UserController.class)
+// @Transactional  // nie działa wtedy shouldReturnAllUsers
+// a jak dodam tylko czyszczenie kontekstu to nie działa usuwanie
+// @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+//@AutoConfigureMockMvc(addFilters = false)
+@Sql(
+        scripts = {
+                "/sql/cleanup.sql",
+                "/sql/insert_users.sql"
+        },
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
+)
 public class UserControllerTest {
 
     @LocalServerPort
     int localServerPort;
 
     @Autowired
-    private RestTemplate restTemplate;  // NIE DZIALA DLA PATCH
+    private TestRestTemplate restTemplate;  // NIE DZIALA DLA PATCH
+
+//    @AutoConfigureMockMvc
+//    @Autowired
+//    private MockMvc mockMvc;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -60,23 +82,30 @@ public class UserControllerTest {
     }
 
     @Test
-    void shouldReturnAllUsersWhenApiKeyIsValid() {
+    void shouldReturnAllUsersWhenApiKeyIsValid() throws IOException, JSONException {
         // given
         HttpHeaders header = new HttpHeaders();
         header.set("X-Api-Key", "ABC");
         HttpEntity<Void> entity = new HttpEntity<>(header);
         String url = "http://localhost:" + localServerPort + "/users";
+        String expectedJson = StreamUtils.copyToString(
+                new ClassPathResource("payload/user/happy-path/GetAllUsersSuccessResponse.json")
+                        .getInputStream(), StandardCharsets.UTF_8);
 
         // when
-        ResponseEntity<UserResponse[]> response = restTemplate.exchange(
+        ResponseEntity<String> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
-                UserResponse[].class);
+                String.class);
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).hasSize(expectedUserCount);
+        JSONAssert.assertEquals(
+                expectedJson,
+                response.getBody(),
+                JSONCompareMode.LENIENT
+        );
     }
 
     @Test
@@ -88,76 +117,96 @@ public class UserControllerTest {
         String url = "http://localhost:" + localServerPort + "/users";
 
         // when & then
-        assertThatThrownBy(() ->
-                restTemplate.exchange(
-                        url,
-                        HttpMethod.GET,
-                        entity,
-                        UserResponse[].class
-                )
-        )
-                .isInstanceOf(HttpClientErrorException.Unauthorized.class)
-                .hasMessageContaining("401");
+        ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
-    void shouldReturnCorrectUserById() {
+    void shouldReturnCorrectUserById() throws IOException, JSONException {
         // given
         String url = "http://localhost:" + localServerPort + "/users/1";
+        String expectedJson = StreamUtils.copyToString(
+                new ClassPathResource("payload/user/happy-path/GetUserByIdSuccessResponse.json")
+                        .getInputStream(), StandardCharsets.UTF_8);
 
         // when
-        ResponseEntity<UserResponse> response = restTemplate.getForEntity(
+        ResponseEntity<String> response = restTemplate.getForEntity(
                 url,
-                UserResponse.class);
+                String.class);
 
         // then
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getUsername()).isEqualTo("krzysiek");  // TODO: sprawdzić cały obiekt i status
-        // TODO: przygotować porownanie z jasone i dodac logike żeby nie porównywało całego jsona z response tylko np bez Id
-        // TODO: assertPayload(expectedResponseBody, actualResponseBody, List.of(field1,field2) - fields to omit); sprawdzic czy jest lub stworzyc
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JSONAssert.assertEquals(
+                expectedJson,
+                response.getBody(),
+                JSONCompareMode.LENIENT
+        );
     }
 
     @Test
-    void shouldCreateUser() {
+    void shouldCreateUser() throws IOException, JSONException {
         // given
-        UserRequest request = new UserRequest("tomasz", "hasloTomasza", "tomasz@gmail.com");
+        UserRequest
+                request = new UserRequest("tomasz", "hasloTomasza", "tomasz@gmail.com");
         String url = "http://localhost:" + localServerPort + "/users";
+        String expectedJson = StreamUtils.copyToString(
+                new ClassPathResource("payload/user/happy-path/CreateUserSuccessResponse.json")
+                        .getInputStream(), StandardCharsets.UTF_8);
+
 
         // when
-        ResponseEntity<UserResponse> response = restTemplate.postForEntity(
+        ResponseEntity<String> response = restTemplate.postForEntity(
                 url,
                 request,
-                UserResponse.class
+                String.class
                 );
-        UserResponse responseFromDb = restTemplate.getForObject(
-                "http://localhost:"+localServerPort+"/users/" + response.getBody().getId(),
-                UserResponse.class);
 
         //then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody().getUsername()).isEqualTo("tomasz");
-        assertThat(responseFromDb.getEmail()).isEqualTo("tomasz@gmail.com");
+        JSONAssert.assertEquals(
+                expectedJson,
+                response.getBody(),
+                JSONCompareMode.LENIENT
+        );
+
     }
 
-//    @Test
-//    void shouldUpdateUser() {
-//        // given
-//        UserRequest updateRequest = new UserRequest("krzysiekNew", "haslo123New", "krzysiekNew@gmail.com");
-//        HttpEntity<UserRequest> entity = new HttpEntity<>(updateRequest);
-//        String url = "http://localhost:" + localServerPort + "/users/1";
-//
-//        // when
-//        ResponseEntity<UserResponse> response = restTemplate.exchange(
-//                url,
-//                HttpMethod.PATCH,
-//                entity,
-//                UserResponse.class);
-//
-//        //then
-//        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-//        assertThat(response.getBody().getUsername()).isEqualTo("krzysiekNew");
-//
-//    }
+    @Test
+    void shouldUpdateUser() throws IOException, JSONException {
+        // given
+        UserRequest updateRequest = new UserRequest(
+                "krzysiekNew", "haslo123New", "krzysiekNew@gmail.com");
+        HttpEntity<UserRequest> entity = new HttpEntity<>(updateRequest);
+        String url = "http://localhost:" + localServerPort + "/users/1";
+        String expectedJson = StreamUtils.copyToString(
+                new ClassPathResource("payload/user/happy-path/UpdateUserSuccessResponse.json")
+                        .getInputStream(),
+                StandardCharsets.UTF_8
+        );
+
+        // when
+        ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.PATCH,
+                entity,
+                String.class
+        );
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JSONAssert.assertEquals(
+                expectedJson,
+                response.getBody(),
+                JSONCompareMode.LENIENT
+        );
+
+    }
 
     @Test
     void shouldDeleteUserSuccessfully() {
@@ -179,6 +228,7 @@ public class UserControllerTest {
                 UserResponse[].class);
 
         // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(expectedUserCount - 1);
     }
 }

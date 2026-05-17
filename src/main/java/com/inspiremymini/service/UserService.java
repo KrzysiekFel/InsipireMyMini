@@ -1,7 +1,7 @@
 package com.inspiremymini.service;
 
-import com.inspiremymini.dto.UserRequest;
-import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.api.model.UserRequest;
+import com.inspiremymini.api.model.UserResponse;
 import com.inspiremymini.exception.EmailAlreadyExistsException;
 import com.inspiremymini.exception.UserNotFoundException;
 import com.inspiremymini.exception.UsernameAlreadtExistsException;

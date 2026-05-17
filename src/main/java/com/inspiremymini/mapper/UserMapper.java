@@ -1,7 +1,7 @@
 package com.inspiremymini.mapper;
 
-import com.inspiremymini.dto.UserRequest;
-import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.api.model.UserRequest;
+import com.inspiremymini.api.model.UserResponse;
 import com.inspiremymini.model.UserEntity;
 import org.springframework.stereotype.Component;
 
@@ -9,11 +9,10 @@ import org.springframework.stereotype.Component;
 public class UserMapper {
 
     public UserResponse mapFromUserEntityToUserResponse(UserEntity userEntity) {
-        return UserResponse.builder()
+        return new UserResponse()
                 .id(userEntity.getId())
                 .username(userEntity.getUsername())
-                .email(userEntity.getEmail())
-                .build();
+                .email(userEntity.getEmail());
     }
 
     public UserEntity mapFromUserRequestToUserEntity(UserRequest userRequest) {

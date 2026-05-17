@@ -1,7 +1,7 @@
 package com.inspiremymini.service;
 
-import com.inspiremymini.dto.UserRequest;
-import com.inspiremymini.dto.UserResponse;
+import com.inspiremymini.api.model.UserRequest;
+import com.inspiremymini.api.model.UserResponse;
 import com.inspiremymini.exception.EmailAlreadyExistsException;
 import com.inspiremymini.exception.UserNotFoundException;
 import com.inspiremymini.exception.UsernameAlreadtExistsException;
@@ -44,10 +44,14 @@ public class UserServiceTest {
                 1L, "username1", "password1", "user1@example.com");
         UserEntity userEntity2 = new UserEntity(
                 2L, "username2", "password2", "user2@example.com");
-        UserResponse userResponse1 = new UserResponse(
-                1L, "username1", "user1@example.com");
-        UserResponse userResponse2 = new UserResponse(
-                2L, "username2", "user2@example.com");
+        UserResponse userResponse1 = new UserResponse()
+                .id(1L)
+                .username("username1")
+                .email("user1@example.com");
+        UserResponse userResponse2 = new UserResponse()
+                .id(1L)
+                .username("username1")
+                .email("user1@example.com");
         when(userRepository.findAll()).thenReturn(List.of(userEntity1, userEntity2));
         when(userMapper.mapFromUserEntityToUserResponse(userEntity1)).thenReturn(userResponse1);
         when(userMapper.mapFromUserEntityToUserResponse(userEntity2)).thenReturn(userResponse2);
@@ -67,8 +71,10 @@ public class UserServiceTest {
         // given
         UserEntity userEntity = new UserEntity(
                 1L, "username", "password", "user@example.com");
-        UserResponse userResponse = new UserResponse(
-                1L, "username", "user@example.com");
+        UserResponse userResponse = new UserResponse()
+                .id(1L)
+                .username("username")
+                .email("user@example.com");
         when(userRepository.findById(1L)).thenReturn(Optional.of(userEntity));
         when(userMapper.mapFromUserEntityToUserResponse(userEntity)).thenReturn(userResponse);
 
@@ -105,8 +111,10 @@ public class UserServiceTest {
                 1L, "username", "password", "user@example.com");
         UserEntity savedEntity = new UserEntity(
                 1L, "username", "encodedPassword", "user@example.com");
-        UserResponse userResponse = new UserResponse(
-                1L, "username", "user@example.com");
+        UserResponse userResponse = new UserResponse()
+                .id(1L)
+                .username("username")
+                .email("user@example.com");
         when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(false);
         when(userRepository.existsByUsername(userRequest.getUsername())).thenReturn(false);
         when(userMapper.mapFromUserRequestToUserEntity(userRequest)).thenReturn(userEntity);
@@ -166,8 +174,10 @@ public class UserServiceTest {
                 1L, "username", "password", "user@example.com");
         UserEntity updatedUserEntity = new UserEntity(
                 1L, "usernameNew", "encodedPassword", "userNew@example.com");
-        UserResponse userResponse = new UserResponse(
-                1L, "usernameNew", "userNew@example.com");
+        UserResponse userResponse = new UserResponse()
+                .id(1L)
+                .username("usernameNew")
+                .email("userNew@example.com");
         when(userRepository.findById(existingId)).thenReturn(Optional.of(existingUserEntity));
         doAnswer(invocation -> {
             UserEntity entity = invocation.getArgument(0);
