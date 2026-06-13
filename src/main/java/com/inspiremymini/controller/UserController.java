@@ -1,11 +1,13 @@
 package com.inspiremymini.controller;
 
+import com.inspiremymini.api.UsersApi;
 import com.inspiremymini.api.model.UserRequest;
 import com.inspiremymini.api.model.UserResponse;
 import com.inspiremymini.exception.UnauthenticatedException;
 import com.inspiremymini.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.lang.annotation.Aspect;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,7 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
-public class UserController {
+public class UserController implements UsersApi {
     private final UserService userService;
     private static final String API_KEY = "ABC";
 

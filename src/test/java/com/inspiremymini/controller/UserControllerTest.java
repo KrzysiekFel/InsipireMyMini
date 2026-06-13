@@ -1,7 +1,7 @@
 package com.inspiremymini.controller;
 
 // TODO: DO ZROBIENIA:
-// porównywac cały payload <- DONE z gwiazdką
+// porównywac cały payload
 // poprawić ten rest template żeby działał update
 // sprobowac api first
 
@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -29,10 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StreamUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -64,7 +60,7 @@ public class UserControllerTest {
     int localServerPort;
 
     @Autowired
-    private TestRestTemplate restTemplate;  // NIE DZIALA DLA PATCH
+    private TestRestTemplate restTemplate;
 
 //    @AutoConfigureMockMvc
 //    @Autowired
